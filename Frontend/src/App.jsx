@@ -5,29 +5,43 @@ import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(null); // null = not checked yet
+// Components inside Home layout
+import StockList from "./components/StockList";
+import StockForm from "./components/StockForm";
+import StockInOutModal from "./components/StockInOutModal";
+import Reports from "./components/Reports";
+import BarcodeScanner from "./components/BarcodeScanner";
+import DashboardDetails from "./components/DashboardDetails";
 
-  // Check token once on app mount
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+
+  // Check auth status from localStorage
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsAuthenticated(!!token);
   }, []);
 
-  // Show nothing (or a loader) until we know auth status
-  if (isAuthenticated === null) return null;
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default page: Home if authenticated */}
+        {/* Default Route */}
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <Navigate to="/home" replace />
+              <Navigate to="/home/dashboard" replace />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -39,7 +53,7 @@ export default function App() {
           path="/login"
           element={
             isAuthenticated ? (
-              <Navigate to="/home" replace />
+              <Navigate to="/home/dashboard" replace />
             ) : (
               <Login setIsAuthenticated={setIsAuthenticated} />
             )
@@ -49,16 +63,16 @@ export default function App() {
           path="/register"
           element={
             isAuthenticated ? (
-              <Navigate to="/home" replace />
+              <Navigate to="/home/dashboard" replace />
             ) : (
               <Register setIsAuthenticated={setIsAuthenticated} />
             )
           }
         />
 
-        {/* Protected Routes */}
+        {/* Protected Parent Route */}
         <Route
-          path="/home/*"
+          path="/home"
           element={
             isAuthenticated ? (
               <Home setIsAuthenticated={setIsAuthenticated} />
@@ -66,9 +80,21 @@ export default function App() {
               <Navigate to="/login" replace />
             )
           }
-        />
+        >
+          {/* Nested Routes inside Home Layout */}
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="stocks" element={<StockList />} />
+          <Route path="stock-form" element={<StockForm />} />
+          <Route path="stock-in-out" element={<StockInOutModal />} />
+          <Route path="report" element={<Reports />} />
+          <Route path="scanner" element={<BarcodeScanner />} />
+          <Route path="details/:id" element={<DashboardDetails />} />
 
-        {/* Catch All */}
+          {/* Default nested route */}
+          <Route index element={<Navigate to="dashboard" replace />} />
+        </Route>
+
+        {/* Unknown Route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
