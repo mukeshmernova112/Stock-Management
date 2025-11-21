@@ -18,30 +18,31 @@ connectDB()
     process.exit(1);
   });
 
-// Allowed origins
-const allowedOrigins = [
-  "http://localhost:5173", // local frontend
-  "https://wrothystock.netlify.app/login", // replace with actual deployed frontend (Netlify/Vercel)
-  "https://stock-management-1-v9hz.onrender.com", // Render backend
-];
 
-// Middleware
+  // Middleware
 app.use(express.json());
 app.use(morgan("dev"));
 
+
+// Allowed origins
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend
+  "https://wrothystock.netlify.app", // replace with actual deployed frontend (Netlify/Vercel)
+  "https://stock-management-1-v9hz.onrender.com", // Render backend
+];
+
+// CORS setup
 app.use(
-
-
-
-
-
-
-  
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow requests with no origin (like mobile apps, Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
       return callback(new Error(`❌ CORS blocked: ${origin}`), false);
     },
+    methods: ["GET", "POST", "PUT", "DELETE"],    // Allowed HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
     credentials: true,
   })
 );
