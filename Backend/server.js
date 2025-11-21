@@ -22,6 +22,7 @@ connectDB()
 const allowedOrigins = [
   "http://localhost:5173", // local frontend
   "https://wrothystock.netlify.app/login", // replace with actual deployed frontend (Netlify/Vercel)
+  "https://stock-management-1-v9hz.onrender.com", // Render backend
 ];
 
 // Middleware
