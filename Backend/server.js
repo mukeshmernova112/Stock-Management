@@ -22,27 +22,27 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*", // Allow your frontend domain
+    origin: process.env.CLIENT_URL || "*", // Allow frontend
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 app.use(express.json());
-app.use(morgan("dev")); // Helps in debugging
+app.use(morgan("dev")); // Request logging
 
-// API Test Route
+// Test API Route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Stock Management API 🚀" });
 });
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/stocks", stockRoutes);
-
-// Health Check Route (Render uses this)
+// Health Check (Render needs this)
 app.get("/health", (req, res) => {
   res.status(200).send("OK");
 });
+
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/stocks", stockRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
@@ -54,7 +54,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
