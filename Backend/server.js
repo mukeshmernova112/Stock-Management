@@ -30,6 +30,13 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.use(
+
+
+
+
+
+
+  
   cors({
     origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
