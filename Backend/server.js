@@ -1,3 +1,4 @@
+// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -6,56 +7,53 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import stockRoutes from "./routes/stockRoutes.js";
 
-// Load environment variables
 dotenv.config();
+const app = express();
 
-// Connect to MongoDB
+// Connect MongoDB
 connectDB()
   .then(() => console.log("🟢 MongoDB Connected"))
   .catch((error) => {
-    console.error("❌ MongoDB connection failed", error);
-    process.exit(1); // Stop server if DB fails
+    console.error("❌ MongoDB connection failed:", error);
+    process.exit(1);
   });
 
-const app = express();
+// Allowed origins
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend
+  "https://wrothystock.netlify.app/login", // replace with actual deployed frontend (Netlify/Vercel)
+];
 
-// Middlewares
+// Middleware
+app.use(express.json());
+app.use(morgan("dev"));
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*", // Allow frontend
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`❌ CORS blocked: ${origin}`), false);
+    },
     credentials: true,
   })
 );
-app.use(express.json());
-app.use(morgan("dev")); // Request logging
 
-// Test API Route
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to the Stock Management API 🚀" });
-});
+// Routes
+app.get("/", (req, res) => res.json({ message: "Welcome to Stock Management API 🚀" }));
+app.get("/health", (req, res) => res.status(200).send("OK"));
 
-// Health Check (Render needs this)
-app.get("/health", (req, res) => {
-  res.status(200).send("OK");
-});
-
-// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/stocks", stockRoutes);
 
+// 404 Handler
+app.use((req, res) => res.status(404).json({ success: false, message: "Route not found" }));
+
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("🚨 Error:", err.stack);
-  res.status(500).json({
-    success: false,
-    message: "Internal Server Error",
-    error: err.message,
-  });
+  console.error("🚨 Server Error:", err.stack || err);
+  res.status(err.status || 500).json({ success: false, message: err.message || "Server Error" });
 });
 
-// Start server
+// Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on PORT ${PORT} 👍`));
