@@ -1,34 +1,24 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "../services/api"; // updated Axios path
+import api from "../services/api";
+import { UserIcon, LockClosedIcon, FingerPrintIcon } from "@heroicons/react/outline";
 
 export default function Login({ setIsAuthenticated }) {
   const [form, setForm] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false); // loading state
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Handle input changes
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const res = await api.post("/auth/login", form);
-
-      // Save token and user info
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      // Update parent auth state
       if (setIsAuthenticated) setIsAuthenticated(true);
-
       alert(res.data.msg || "Login successful!");
-
-      // Navigate to home/dashboard
       navigate("/home", { replace: true });
     } catch (err) {
       const message =
@@ -43,7 +33,6 @@ export default function Login({ setIsAuthenticated }) {
     }
   };
 
-  // Google OAuth login
   const handleGoogleLogin = () => {
     const backendURL =
       import.meta.env.VITE_API_URL || "https://stock-management-1-v9hz.onrender.com/api";
@@ -51,57 +40,77 @@ export default function Login({ setIsAuthenticated }) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-xl">
-        <h2 className="mb-6 text-3xl font-bold text-center text-gray-800">Login</h2>
+    <div className="flex items-center justify-center min-h-screen px-4 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500">
+      {/* Login Card */}
+      <div className="relative w-full max-w-md p-10 overflow-hidden bg-white shadow-2xl rounded-2xl">
+        {/* Decorative circles */}
+        <div className="absolute bg-purple-300 rounded-full -top-20 -left-20 w-60 h-60 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+        <div className="absolute bg-pink-300 rounded-full -bottom-24 -right-24 w-72 h-72 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+        {/* Form content */}
+        <div className="relative z-10 flex flex-col items-center">
+          <h1 className="mb-6 text-4xl font-extrabold text-gray-800">Welcome Back</h1>
+          <p className="mb-6 text-center text-gray-500">
+            Sign in to manage your inventory and track stocks in real-time
+          </p>
+
+          <form onSubmit={handleSubmit} className="w-full space-y-5">
+            <div className="relative">
+              <UserIcon className="absolute w-5 h-5 text-gray-400 top-3 left-3" />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full p-3 pl-10 transition border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <LockClosedIcon className="absolute w-5 h-5 text-gray-400 top-3 left-3" />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full p-3 pl-10 transition border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full p-3 font-semibold text-white rounded-lg transition shadow-lg ${
+                loading ? "bg-gray-400 cursor-not-allowed" : "bg-purple-600 hover:bg-purple-700"
+              }`}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          <div className="flex items-center justify-center w-full my-4">
+            <span className="text-gray-400">or</span>
+          </div>
+
           <button
-            type="submit"
-            disabled={loading}
-            className={`w-full p-3 font-semibold text-white rounded-lg transition ${
-              loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
-            }`}
+            onClick={handleGoogleLogin}
+            className="flex items-center justify-center w-full p-3 mb-4 font-semibold text-white transition bg-red-500 rounded-lg shadow hover:bg-red-600"
           >
-            {loading ? "Logging in..." : "Login"}
+            <FingerPrintIcon className="w-5 h-5 mr-2" />
+            Continue with Google
           </button>
-        </form>
 
-        <div className="flex items-center justify-center my-4">
-          <span className="text-gray-400">or</span>
+          <p className="text-center text-gray-600">
+            Don't have an account?{" "}
+            <Link to="/register" className="font-medium text-purple-600 hover:underline">
+              Sign Up
+            </Link>
+          </p>
         </div>
-
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full p-3 mb-4 font-semibold text-white transition bg-red-500 rounded-lg hover:bg-red-600"
-        >
-          Continue with Google
-        </button>
-
-        <p className="text-center text-gray-600">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-blue-500 hover:underline">
-            Sign Up
-          </Link>
-        </p>
       </div>
     </div>
   );
