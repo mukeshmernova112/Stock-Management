@@ -31,18 +31,36 @@ export const addStock = async (req, res) => {
   }
 };
 
-// Update stock only if belongs to branch & admin
 export const updateStock = async (req, res) => {
   try {
     const { id } = req.params;
-    const branch = req.user.branch;
+    const userBranch = req.user.branch;
+    const userRole = req.user.role;
 
-    const stock = await Stock.findOne({ _id: id, location: branch });
-    if (!stock) return res.status(404).json({ msg: "Stock not found in your branch" });
+    const stock = await Stock.findById(id);
+    if (!stock) return res.status(404).json({ msg: "Stock not found" });
 
-    const { itemName, quantity } = req.body;
+    // Debug log
+    console.log("Incoming update:", req.body);
+    console.log("User role:", userRole);
+
+    if (stock.location !== userBranch && userRole !== "admin") {
+      return res.status(403).json({ msg: "Not authorized to update this stock" });
+    }
+
+    const { itemName, quantity, location } = req.body;
+
     if (itemName) stock.itemName = itemName;
     if (quantity) stock.quantity = Number(quantity);
+
+    // 📍 Allow location update ONLY IF field exists and user is admin
+    if (location) {
+      if (userRole === "admin") {
+        stock.location = location;
+      } else {
+        return res.status(403).json({ msg: "Only admin can update location" });
+      }
+    }
 
     await stock.save();
     res.json({ msg: "Stock updated", stock });
@@ -50,6 +68,7 @@ export const updateStock = async (req, res) => {
     res.status(500).json({ msg: err.message });
   }
 };
+
 
 // Delete stock only if belongs to branch & admin
 export const deleteStock = async (req, res) => {
