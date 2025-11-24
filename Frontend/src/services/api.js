@@ -1,52 +1,65 @@
 // src/api.js
 import axios from "axios";
 
-// 🔹 Automatically pick correct backend based on environment
+// 🌍 Set base API URL using environment variable
 const BASE_URL =
-  import.meta.env.MODE === "production"
-    ? "https://stock-management-1-v9hz.onrender.com/api" // 🔥 Production (Render)
-    : "http://localhost:5000/api"; // 🧪 Local development
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.MODE === "production"
+    ? "https://stock-management-1-v9hz.onrender.com/api"
+    : "http://localhost:5000/api");
 
-// 🔧 Create axios instance
+// 🛠 Create Axios instance
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000, // 10 seconds
+  timeout: 15000, // Increased timeout for Render cold-start delay
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // 🔥 Allow cookies & auth if any
 });
 
-// 🔒 Attach JWT token to every API request if available
+// 🛡 Attach JWT token automatically
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// 🎯 Global response handler
+// 🔄 Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Network error (server not reachable / CORS issue)
+    // 📡 Backend unreachable / CORS / Network issue
     if (!error.response) {
       return Promise.reject(
-        new Error("📡 Network error. Backend not reachable!")
+        new Error("📡 Backend server unreachable! Please try again later.")
       );
     }
 
-    // 🔐 Token expired / unauthorized
+    // ⛔ Unauthorized: token expired
     if (error.response.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login"; // Auto redirect to login
+      localStorage.clear(); // Token + User remove
+      window.location.href = "/login"; // Redirect to login
     }
 
-    // ❌ Other backend error
+    // 🚫 Forbidden
+    if (error.response.status === 403) {
+      return Promise.reject(
+        new Error("🚫 Access forbidden. Contact admin.")
+      );
+    }
+
+    // ❌ Server error
+    if (error.response.status >= 500) {
+      return Promise.reject(
+        new Error("🔥 Server error! Please try again later.")
+      );
+    }
+
+    // 🔁 Return original error for other cases
     return Promise.reject(error);
   }
 );
