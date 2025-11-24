@@ -5,14 +5,21 @@ import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import session from "express-session";
+import cookieParser from "cookie-parser";
+import passport from "./config/passport.js";
 import connectDB from "./config/db.js";
+
 import authRoutes from "./routes/authRoutes.js";
 import stockRoutes from "./routes/stockRoutes.js";
+import googleAuthRoutes from "./routes/googleAuthRoutes.js"; // Google OAuth
 
 dotenv.config();
 const app = express();
 
-// --- DB connect (async)
+// -------------------------
+// MongoDB Connection
+// -------------------------
 (async () => {
   try {
     await connectDB();
@@ -23,61 +30,81 @@ const app = express();
   }
 })();
 
-// --- Basic middleware
+// -------------------------
+// Middlewares
+// -------------------------
 app.use(express.json());
 app.use(morgan("dev"));
-app.use(helmet()); // security headers
+app.use(helmet());
+app.use(cookieParser());
 
-// --- Rate limiter (basic)
+// Express session
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "yourSecretKey",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: process.env.NODE_ENV === "production" },
+  })
+);
+
+// Initialize passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Rate limiter
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100,
 });
 app.use(limiter);
 
-// --- CORS configuration (no wildcard routes)
+// -------------------------
+// CORS configuration
+// -------------------------
 const allowedOrigins = new Set([
-  "http://localhost:5173",
-  "https://stock-management-orcin.vercel.app",
-  // add other allowed origins here
+  "http://localhost:5173",                    // local frontend
+  "https://stock-management-orcin.vercel.app", // deployed frontend
 ]);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow non-browser requests like Postman (no origin)
-      if (!origin) return callback(null, true);
-
+      if (!origin) return callback(null, true); // allow Postman / server-to-server
       if (allowedOrigins.has(origin)) return callback(null, true);
-
-      // reject other origins
       return callback(new Error(`CORS policy: Blocked origin ${origin}`), false);
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-    preflightContinue: false, // let cors() send the response
+    preflightContinue: false,
     optionsSuccessStatus: 204,
   })
 );
 
-// NOTE: Do NOT use app.options('*' or '/*', ...) or app.use('*', ...) — these trigger path-to-regexp errors.
-// The cors() middleware above handles OPTIONS preflight automatically.
-
-// --- Routes
+// -------------------------
+// Basic routes
+// -------------------------
 app.get("/", (req, res) => res.json({ message: "🚀 Welcome to Stock Management API" }));
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
-// API routes
+// -------------------------
+// API Routes
+// -------------------------
 app.use("/api/auth", authRoutes);
 app.use("/api/stocks", stockRoutes);
+app.use("/api/auth", googleAuthRoutes); // Google OAuth routes
 
-// --- 404 handler (catch all)
+// -------------------------
+// 404 handler
+// -------------------------
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-// --- Global error handler
+// -------------------------
+// Global error handler
+// -------------------------
 app.use((err, req, res, next) => {
   console.error("🔥 Server Error:", err && err.stack ? err.stack : err);
   const status = err && err.status ? err.status : 500;
@@ -87,8 +114,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// --- Start
+// -------------------------
+// Start Server
+// -------------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Backend running on PORT ${PORT} (NODE_ENV=${process.env.NODE_ENV || "development"})`);
+  console.log(
+    `🚀 Backend running on PORT ${PORT} (NODE_ENV=${process.env.NODE_ENV || "development"})`
+  );
 });

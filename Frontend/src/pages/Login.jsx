@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "../services/api";
 import { UserIcon, LockClosedIcon, FingerPrintIcon } from "@heroicons/react/outline";
+import api from "../services/api";
 
 export default function Login({ setIsAuthenticated }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Handle input changes
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Handle normal login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -33,15 +35,26 @@ export default function Login({ setIsAuthenticated }) {
     }
   };
 
+  // Google OAuth login
   const handleGoogleLogin = () => {
     const backendURL =
       import.meta.env.VITE_API_URL || "https://stock-management-1-v9hz.onrender.com/api";
     window.location.href = `${backendURL}/auth/google`;
   };
 
+  // Auto-login after Google redirect with token
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+    if (token) {
+      localStorage.setItem("token", token);
+      alert("Logged in with Google successfully!");
+      navigate("/home", { replace: true });
+    }
+  }, [navigate]);
+
   return (
     <div className="flex items-center justify-center min-h-screen px-4 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500">
-      {/* Login Card */}
       <div className="relative w-full max-w-md p-10 overflow-hidden bg-white shadow-2xl rounded-2xl">
         {/* Decorative circles */}
         <div className="absolute bg-purple-300 rounded-full -top-20 -left-20 w-60 h-60 mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
@@ -92,10 +105,12 @@ export default function Login({ setIsAuthenticated }) {
             </button>
           </form>
 
+          {/* Divider */}
           <div className="flex items-center justify-center w-full my-4">
             <span className="text-gray-400">or</span>
           </div>
 
+          {/* Google Login */}
           <button
             onClick={handleGoogleLogin}
             className="flex items-center justify-center w-full p-3 mb-4 font-semibold text-white transition bg-red-500 rounded-lg shadow hover:bg-red-600"

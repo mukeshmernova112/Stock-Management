@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { FingerPrintIcon } from "@heroicons/react/outline";
 import api from "../services/api";
@@ -14,10 +14,12 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Handle form input changes
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  // Handle normal registration
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -38,6 +40,7 @@ export default function Register() {
     }
   };
 
+  // Handle Google OAuth registration/login
   const handleGoogleRegister = () => {
     const backendURL =
       import.meta.env.VITE_API_URL ||
@@ -45,21 +48,28 @@ export default function Register() {
     window.location.href = `${backendURL}/auth/google`;
   };
 
+  // Optional: Auto-login if Google redirects back with token
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+    if (token) {
+      localStorage.setItem("token", token);
+      alert("Logged in with Google successfully!");
+      navigate("/home");
+    }
+  }, [navigate]);
+
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="w-full max-w-lg overflow-hidden bg-white shadow-2xl rounded-3xl">
         {/* Top Banner */}
         <div className="relative flex items-center justify-center w-full h-40 overflow-hidden rounded-b-3xl">
-  {/* Animated Gradient Background */}
-  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-pink-500 to-orange-400 animate-gradient-x opacity-90"></div>
-
-  {/* Overlay with subtle pattern */}
-  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-
-  <h1 className="relative text-4xl font-extrabold text-center text-white md:text-5xl drop-shadow-xl animate-fadeIn">
-    Join WorthyTen
-  </h1>
-</div>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-pink-500 to-orange-400 animate-gradient-x opacity-90"></div>
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+          <h1 className="relative text-4xl font-extrabold text-center text-white md:text-5xl drop-shadow-xl animate-fadeIn">
+            Join WorthyTen
+          </h1>
+        </div>
 
         <div className="p-8 space-y-6">
           <h2 className="text-2xl font-bold text-center text-gray-700">
@@ -69,7 +79,7 @@ export default function Register() {
             Start managing your inventory with real-time tracking
           </p>
 
-          {/* Form */}
+          {/* Registration Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               type="text"
