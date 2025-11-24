@@ -24,10 +24,11 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 
+
 // Allowed origins
 const allowedOrigins = [
   "http://localhost:5173", // local frontend
-  "https://wrothystock.netlify.app", // replace with actual deployed frontend (Netlify/Vercel)
+  "stock-management-orcin.vercel.app", // replace with actual deployed frontend (Netlify/Vercel)
   "https://stock-management-1-v9hz.onrender.com", // Render backend
 ];
 
