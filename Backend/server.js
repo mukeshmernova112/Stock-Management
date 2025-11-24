@@ -9,13 +9,16 @@ import stockRoutes from "./routes/stockRoutes.js";
 dotenv.config();
 const app = express();
 
-// MongoDB Connection
-connectDB()
-  .then(() => console.log("🟢 MongoDB Connected"))
-  .catch((error) => {
+// Database Connection
+(async () => {
+  try {
+    await connectDB();
+    console.log("🟢 MongoDB Connected");
+  } catch (error) {
     console.error("❌ MongoDB connection failed:", error);
     process.exit(1);
-  });
+  }
+})();
 
 // Middleware
 app.use(express.json());
@@ -24,33 +27,29 @@ app.use(morgan("dev"));
 // CORS Setup
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://stock-management-orcin.vercel.app", // 🟢 Frontend Vercel URL
+  "https://stock-management-orcin.vercel.app", // Vercel frontend
 ];
 
-// 🔥 FINAL CORS FIX
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("❌ Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// 🔁 Preflight request (very important)
-app.options("*", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.status(200).end();
-});
+// ❌ REMOVE THIS (Wrong path syntax in Express 5+)
+// app.options("*", ...);
+
+// ✔ Correct catch-all for OPTIONS (Preflight)
+app.options("/*", cors());
 
 // Routes
 app.get("/", (req, res) =>
@@ -66,16 +65,17 @@ app.use((req, res) =>
   res.status(404).json({ success: false, message: "Route not found" })
 );
 
-// Global Error Handler
+// Error Handler
 app.use((err, req, res, next) => {
   console.error("🔥 Server Error:", err.stack || err);
-  res
-    .status(err.status || 500)
-    .json({ success: false, message: err.message || "Server Error" });
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Server Error",
+  });
 });
 
-// Start server
+// Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
-  console.log(`🚀 Backend running on PORT ${PORT} (${process.env.NODE_ENV})`)
+  console.log(`🚀 Backend running on PORT ${PORT}`)
 );
