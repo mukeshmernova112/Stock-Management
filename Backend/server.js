@@ -1,7 +1,10 @@
+// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import stockRoutes from "./routes/stockRoutes.js";
@@ -9,73 +12,83 @@ import stockRoutes from "./routes/stockRoutes.js";
 dotenv.config();
 const app = express();
 
-// 📌 MongoDB Connection
+// --- DB connect (async)
 (async () => {
   try {
     await connectDB();
     console.log("🟢 MongoDB Connected");
-  } catch (error) {
-    console.error("❌ MongoDB connection failed:", error);
+  } catch (err) {
+    console.error("❌ MongoDB connection failed:", err);
     process.exit(1);
   }
 })();
 
-// 📌 Middleware
+// --- Basic middleware
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(helmet()); // security headers
 
-// 📌 CORS Setup
-const allowedOrigins = [
+// --- Rate limiter (basic)
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 100,
+});
+app.use(limiter);
+
+// --- CORS configuration (no wildcard routes)
+const allowedOrigins = new Set([
   "http://localhost:5173",
-  "https://stock-management-orcin.vercel.app", // Vercel frontend
-];
+  "https://stock-management-orcin.vercel.app",
+  // add other allowed origins here
+]);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("❌ Not allowed by CORS: " + origin));
-      }
+      // allow non-browser requests like Postman (no origin)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.has(origin)) return callback(null, true);
+
+      // reject other origins
+      return callback(new Error(`CORS policy: Blocked origin ${origin}`), false);
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
+    preflightContinue: false, // let cors() send the response
+    optionsSuccessStatus: 204,
   })
 );
 
-// 🛑 ❌ REMOVE THIS LINE (crash ஆகும் காரணம் இது)
-// app.options("/*", cors());
+// NOTE: Do NOT use app.options('*' or '/*', ...) or app.use('*', ...) — these trigger path-to-regexp errors.
+// The cors() middleware above handles OPTIONS preflight automatically.
 
-// ✔ Correct (Express 5+ supports just "*")
-app.options("*", cors());
-
-// 📌 Routes
-app.get("/", (req, res) =>
-  res.json({ message: "🚀 Welcome to Stock Management API" })
-);
+// --- Routes
+app.get("/", (req, res) => res.json({ message: "🚀 Welcome to Stock Management API" }));
 app.get("/health", (req, res) => res.status(200).send("OK"));
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/stocks", stockRoutes);
 
-// 📌 404 Handler
-app.use((req, res) =>
-  res.status(404).json({ success: false, message: "Route not found" })
-);
+// --- 404 handler (catch all)
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
 
-// 📌 Global Error Handler
+// --- Global error handler
 app.use((err, req, res, next) => {
-  console.error("🔥 Server Error:", err.stack || err);
-  res.status(err.status || 500).json({
+  console.error("🔥 Server Error:", err && err.stack ? err.stack : err);
+  const status = err && err.status ? err.status : 500;
+  res.status(status).json({
     success: false,
-    message: err.message || "Server Error",
+    message: err && err.message ? err.message : "Internal Server Error",
   });
 });
 
-// 🚀 Start Server
+// --- Start
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Backend running on PORT ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on PORT ${PORT} (NODE_ENV=${process.env.NODE_ENV || "development"})`);
+});
