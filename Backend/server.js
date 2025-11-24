@@ -9,7 +9,7 @@ import stockRoutes from "./routes/stockRoutes.js";
 dotenv.config();
 const app = express();
 
-// Database Connection
+// 📌 MongoDB Connection
 (async () => {
   try {
     await connectDB();
@@ -20,11 +20,11 @@ const app = express();
   }
 })();
 
-// Middleware
+// 📌 Middleware
 app.use(express.json());
 app.use(morgan("dev"));
 
-// CORS Setup
+// 📌 CORS Setup
 const allowedOrigins = [
   "http://localhost:5173",
   "https://stock-management-orcin.vercel.app", // Vercel frontend
@@ -36,7 +36,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("❌ Not allowed by CORS"));
+        callback(new Error("❌ Not allowed by CORS: " + origin));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -45,13 +45,13 @@ app.use(
   })
 );
 
-// ❌ REMOVE THIS (Wrong path syntax in Express 5+)
-// app.options("*", ...);
+// 🛑 ❌ REMOVE THIS LINE (crash ஆகும் காரணம் இது)
+// app.options("/*", cors());
 
-// ✔ Correct catch-all for OPTIONS (Preflight)
-app.options("/*", cors());
+// ✔ Correct (Express 5+ supports just "*")
+app.options("*", cors());
 
-// Routes
+// 📌 Routes
 app.get("/", (req, res) =>
   res.json({ message: "🚀 Welcome to Stock Management API" })
 );
@@ -60,12 +60,12 @@ app.get("/health", (req, res) => res.status(200).send("OK"));
 app.use("/api/auth", authRoutes);
 app.use("/api/stocks", stockRoutes);
 
-// 404 Handler
+// 📌 404 Handler
 app.use((req, res) =>
   res.status(404).json({ success: false, message: "Route not found" })
 );
 
-// Error Handler
+// 📌 Global Error Handler
 app.use((err, req, res, next) => {
   console.error("🔥 Server Error:", err.stack || err);
   res.status(err.status || 500).json({
@@ -74,7 +74,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
+// 🚀 Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`🚀 Backend running on PORT ${PORT}`)
